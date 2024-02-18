@@ -24,7 +24,7 @@ class Actor : public GraphObject
         {world_=world; alive_=true;};
         void die() {alive_ = false;}; //kill actor -> alive is false and should be removed
         virtual ~Actor() {return;}; //deleting actor should not delete student world
-        virtual void doSomething() = 0;
+        virtual int doSomething() = 0;
         virtual bool canDie() {return false;}; //default actors cannot die(walls, factories)
         bool isAlive() {return alive_;}; //getter function
         StudentWorld *getWorld() {return world_;};
@@ -39,7 +39,7 @@ class Wall : public Actor
     public:
         Wall(double startX, double startY, StudentWorld *world)
         :Actor(world, IID_WALL, startX, startY){setVisible(true);};
-        virtual void doSomething() {return;}; //
+        virtual int doSomething() {return GWSTATUS_CONTINUE_GAME;}; //
         virtual ~Wall() {return;};
 };
 //ACTOR DERIVED: Factory
@@ -52,7 +52,7 @@ class Living : public Actor
         Living(double startX, double startY, int imageID, StudentWorld *world,int dir=none)
         :Actor(world, imageID, startX, startY,dir){hitpoints_=0;};
         virtual bool canDie() {return true;};
-        virtual void doSomething() = 0; //is an ABC, cannot be directly created
+        virtual int doSomething() = 0; //is an ABC, cannot be directly created
         int getHitpoints() {return hitpoints_;};
         bool updateHitpoints(int hp); //if returns false, stop dosomething
     private:
@@ -64,12 +64,9 @@ class Avatar : public Living
     public:
         Avatar(double startX, double startY, StudentWorld *world);
         virtual bool canDie() {return true;};
-        virtual void doSomething(); 
+        virtual int doSomething(); 
     private:
-        void move(int dir);
-        int test_; 
         int numPeas_;
-        int numLives_;
 };
 
 #endif // ACTOR_H_

@@ -19,12 +19,12 @@ public:
   virtual int init();
   virtual int move();
   virtual void cleanUp();
-
+  void moveActor(Actor* actor, int newX, int newY);
 private:
+  int loadLevel();
   vector<Actor *> actors_; //vector of all actor
   Avatar *avatar_;
-  int loadLevel(); //load level, return 0 if loaded successfully, 1 if error, 2 if game complete
-  int numLives_; //perm var
+  int bonusPts_;
 };
 
 #endif // STUDENTWORLD_H_

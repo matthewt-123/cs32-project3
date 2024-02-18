@@ -20,33 +20,35 @@ Avatar::Avatar(double startX, double startY, StudentWorld *world)
     updateHitpoints(20);
     numPeas_ = 20;
 }
-void Avatar::move(int dir){
 
-}
-
-void Avatar::doSomething()
+int Avatar::doSomething()
 {
-    if (!isAlive()) return;
+    if (!isAlive()) return GWSTATUS_PLAYER_DIED;
     int ch = 0;
     if (getWorld()->getKey(ch)){
-        cerr << ch << endl;
         switch (ch){
             case KEY_PRESS_LEFT:
                 setDirection(left);
+                getWorld()->moveActor(this, getX()-1,getY());
                 break;
             case KEY_PRESS_RIGHT:
                 setDirection(right);
+                getWorld()->moveActor(this, getX()+1,getY());
                 break;
             case KEY_PRESS_DOWN:
                 setDirection(down);
+                getWorld()->moveActor(this, getX(),getY()-1);
                 break;
             case KEY_PRESS_UP:
                 setDirection(up);
+                getWorld()->moveActor(this, getX(),getY()+1);
                 break;
             case KEY_PRESS_ESCAPE:
+                return GWSTATUS_PLAYER_DIED;
                 break;
             default:
-                return;
+                break;
         }
     }
+    return GWSTATUS_CONTINUE_GAME;
 }
