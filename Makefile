@@ -9,7 +9,7 @@ HEADERS = $(wildcard *.h)
 
 .PHONY: default all clean
 
-PRODUCT = MarbleMadness
+PRODUCT = a
 
 all: $(PRODUCT)
 

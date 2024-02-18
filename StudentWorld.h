@@ -4,8 +4,11 @@
 #include "GameWorld.h"
 #include "Level.h"
 #include <string>
+#include <vector>
+using namespace std;
 
 // Students:  Add code to this file, StudentWorld.cpp, Actor.h, and Actor.cpp
+class Actor; 
 
 class StudentWorld : public GameWorld
 {
@@ -16,6 +19,9 @@ public:
   virtual void cleanUp();
 
 private:
+  vector<Actor *> actors_; //vector of all actor
+  // Avatar *avatar_;
+  int loadLevel(); //load level, return 0 if loaded successfully, 1 if error, 2 if game complete
 };
 
 #endif // STUDENTWORLD_H_
