@@ -16,6 +16,7 @@ GameWorld* createStudentWorld(string assetPath)
 StudentWorld::StudentWorld(string assetPath)
 : GameWorld(assetPath)
 {
+    numLives_ = 3;
 }
 
 
@@ -34,9 +35,11 @@ int StudentWorld::loadLevel()
         {
             switch(lev.getContentsOf(i, j)){
                 case Level::player:
+                    avatar_ = new Avatar(i,j,this);
                     break;
                 case Level::wall:
                     actors_.push_back(new Wall(i,j,this));
+                    break;
             }
         }
     }
@@ -54,7 +57,12 @@ int StudentWorld::init()
 int StudentWorld::move()
 {
     // This code is here merely to allow the game to build, run, and terminate after you type q
-
+    vector<Actor*>::iterator it = actors_.begin();
+    while (it != actors_.end()) {
+        (*it)->doSomething();
+        it++;
+    }
+    avatar_->doSomething();
     setGameStatText("Game will end when you type q");
     
 	return GWSTATUS_CONTINUE_GAME;
@@ -68,6 +76,7 @@ void StudentWorld::cleanUp()
         delete *it; //free any remaining actors
         it = actors_.erase(it); //delete item from vector
     }
+    delete avatar_;
 }
 StudentWorld::~StudentWorld()
 {

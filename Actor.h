@@ -1,6 +1,10 @@
 #ifndef ACTOR_H_
 #define ACTOR_H_
-
+#define TEST
+#ifdef TEST
+#include <iostream>
+using namespace std;
+#endif
 #include "GraphObject.h"
 class StudentWorld;
 class Player;
@@ -15,17 +19,21 @@ Fully virtual function doSomething()
 class Actor : public GraphObject
 {
     public:
-        Actor(StudentWorld *world, int imageID, double startX, double startY,int dir=0, double size = 1.0) 
-        :GraphObject(imageID, startX, startY ,dir, size)
-        {world=world; alive_=true;};
+        Actor(StudentWorld *world, int imageID, double startX, double startY,int dir=-1) 
+        :GraphObject(imageID, startX, startY ,dir)
+        {world_=world; alive_=true;};
         void die() {alive_ = false;}; //kill actor -> alive is false and should be removed
         virtual ~Actor() {return;}; //deleting actor should not delete student world
         virtual void doSomething() = 0;
+        virtual bool canDie() {return false;}; //default actors cannot die(walls, factories)
+        bool isAlive() {return alive_;}; //getter function
+        StudentWorld *getWorld() {return world_;};
     private:
-        StudentWorld *world;
+        StudentWorld *world_;
         bool alive_;
 
 };
+//ACTOR DERIVED: Wall
 class Wall : public Actor
 {
     public:
@@ -34,4 +42,34 @@ class Wall : public Actor
         virtual void doSomething() {return;}; //
         virtual ~Wall() {return;};
 };
+//ACTOR DERIVED: Factory
+//TODO
+
+//ACTOR DERIVED ABC: Living Objects(can die during gameplay)
+class Living : public Actor
+{
+    public:
+        Living(double startX, double startY, int imageID, StudentWorld *world,int dir=none)
+        :Actor(world, imageID, startX, startY,dir){hitpoints_=0;};
+        virtual bool canDie() {return true;};
+        virtual void doSomething() = 0; //is an ABC, cannot be directly created
+        int getHitpoints() {return hitpoints_;};
+        bool updateHitpoints(int hp); //if returns false, stop dosomething
+    private:
+        int hitpoints_;
+};
+//Living Object: Avatar
+class Avatar : public Living
+{
+    public:
+        Avatar(double startX, double startY, StudentWorld *world);
+        virtual bool canDie() {return true;};
+        virtual void doSomething(); 
+    private:
+        void move(int dir);
+        int test_; 
+        int numPeas_;
+        int numLives_;
+};
+
 #endif // ACTOR_H_
