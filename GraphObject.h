@@ -3,7 +3,6 @@
 
 #include "SpriteManager.h"
 #include "GameConstants.h"
-
 #include <set>
 #include <cmath>
 

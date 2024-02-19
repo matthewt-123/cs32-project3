@@ -3,7 +3,6 @@
 
 #include "GameConstants.h"
 #include <string>
-
 const int START_PLAYER_LIVES = 3;
 
 class GameController;

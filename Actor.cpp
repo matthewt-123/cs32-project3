@@ -1,8 +1,30 @@
 #include "Actor.h"
 #include "StudentWorld.h"
-
+#include <iostream>
+using namespace std;
 // Students:  Add code to this file, Actor.h, StudentWorld.h, and StudentWorld.cpp
+void moveDir(int dir, int &x, int &y){
+    switch(dir){
+        case 0:
+            x++;
+            break;
+        case 90:
+            y++;
+            break;
+        case 180:
+            x--;
+            break;
+        case 270:
+            y--;
+            break;
+        default:
+            break;
+    }
+}
 
+/**************
+Actor::Living ABC
+***************/
 //update hp: return true if still alive, false if not
 bool Living::updateHitpoints(int hp)
 {
@@ -14,16 +36,19 @@ bool Living::updateHitpoints(int hp)
         return false;
     }
 }
+/****************
+Actor::Living::Avatar
+*****************/
 Avatar::Avatar(double startX, double startY, StudentWorld *world)
-:Living(startX, startY, IID_PLAYER, world, right)
+:Living(startX, startY, IID_PLAYER, world, right, 20)
 {
     updateHitpoints(20);
     numPeas_ = 20;
 }
 
-int Avatar::doSomething()
+void Avatar::doSomething()
 {
-    if (!isAlive()) return GWSTATUS_PLAYER_DIED;
+    if (!isAlive()) return;
     int ch = 0;
     if (getWorld()->getKey(ch)){
         switch (ch){
@@ -44,11 +69,63 @@ int Avatar::doSomething()
                 getWorld()->moveActor(this, getX(),getY()+1);
                 break;
             case KEY_PRESS_ESCAPE:
-                return GWSTATUS_PLAYER_DIED;
+                die();
+                return;
                 break;
             default:
                 break;
         }
     }
-    return GWSTATUS_CONTINUE_GAME;
+}
+/****************
+Actor::Living::Pea
+*****************/
+Pea::Pea(double startX, double startY, StudentWorld *world, int dir)
+:NotAlive(startX, startY, IID_PEA, world, dir)
+{
+    dir_ = dir;
+}
+void Pea::doSomething()
+{
+    if (!isAlive()) return;
+    getWorld()->peaDamage(getX(),getY(), this);
+    int x = getX();
+    int y = getY();
+    moveDir(getDirection(), x, y);
+    moveTo(x,y);
+    getWorld()->peaDamage(getX(),getY(), this);
+
+}
+
+/****************
+Actor::Living::RageBot
+*****************/
+RageBot::RageBot(double startX, double startY, StudentWorld *world, int dir)
+:Living(startX, startY, IID_RAGEBOT, world, 10, dir)
+{
+    tickCt_ = 0;
+    ticks_=(28-world->getLevel())/4;
+    if (ticks_ < 3) ticks_ = 3;
+};
+
+void RageBot::doSomething()
+{
+    if (!isAlive()) return;
+    Actor *avatar = getWorld()->getAvatar();
+    if (tickCt_ % ticks_ == 0) getWorld()->firePeaBot(getX(), getY(),getDirection(), avatar->getX(), avatar->getY());
+    else {
+        int x = getX();
+        int y = getY();
+        moveDir(getDirection(), x,y);
+        if (!getWorld()->moveActor(this, x,y)) setDirection(getDirection() - 180);
+    }
+    tickCt_++;
+}
+void Living::damage()
+{
+    updateHitpoints(-2);
+    if(getHitpoints() <= 0) {
+        die();
+    }
+    cerr << "ouch";
 }
