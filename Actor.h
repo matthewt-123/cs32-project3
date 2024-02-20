@@ -25,12 +25,13 @@ class Actor : public GraphObject
         void die() {alive_ = false;}; //kill actor -> alive is false and should be removed
         virtual ~Actor() {return;}; //deleting actor should not delete student world
         virtual void doSomething() = 0;
-        virtual void damage() {}; //default: nothing happens when hit by pea
+        virtual bool damage(int x, int y) {return false;}; //default: nothing happens when hit by pea
         virtual bool canDie() {return false;}; //default actors cannot die(walls, factories)
         virtual bool canCollect() {return false;}; //cannot collect default actors
         bool isAlive() {return alive_;}; //getter function
         virtual bool isAffectedByPea() {return true;};
         bool onSameSquare(Actor* a1, int x, int y){return (a1->getX() == x && a1->getY() == y) ? true : false;};
+        void compareDist(Actor* a, int constDir, int target, int &closestObj, char dir, int sDir);
         StudentWorld *getWorld() {return world_;};
     private:
         StudentWorld *world_;
@@ -56,7 +57,7 @@ class Living : public Actor
         Living(double startX, double startY, int imageID, StudentWorld *world,int hp,int dir=none)
         :Actor(world, imageID, startX, startY,dir){hitpoints_=hp;};
         virtual bool canDie() {return true;};
-        virtual void damage(); //default: remove 2 hp and dies if no hp left
+        virtual bool damage(int x, int y); //default: remove 2 hp and dies if no hp left
         virtual void doSomething() = 0; //is an ABC, cannot be directly created
         int getHitpoints() {return hitpoints_;};
         bool updateHitpoints(int hp); //if returns false, stop dosomething
@@ -92,7 +93,7 @@ class NotAlive : public Actor
         :Actor(world, imageID, startX, startY,dir){};
         virtual void doSomething() = 0; //ABC
         virtual bool isAffectedByPea() {return false;};
-        virtual void damage() {}; //non-living objects cannot be damaged
+        virtual bool damage(int x, int y) {return false;}; //non-living objects cannot be damaged
 
 
 };

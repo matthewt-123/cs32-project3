@@ -6,44 +6,38 @@
 #include <string>
 #include <sstream>    // header file for stringstream
 //sDir: +1 for pos dir, -1 for neg dir
-bool isPlayerInSightX(vector<Actor*> &actors_, int startX, int startY, Avatar *avatar_, int sDir, int targetX, int targetY)
+//targetX, Y is coord of player
+bool isPlayerInSight(vector<Actor*> &actors_, int startX, int startY, Avatar *avatar_, int sDir, int targetX, int targetY, char dirSwitch, Actor* Bot)
 {
     vector<Actor*>::iterator it = actors_.begin();
-    if (startY != targetY) return false; //need to be on same row to be in sight
-    if (sDir > 0 && startX > targetX) return false; //pos dir, and target is to the left of shooter
-    else if (sDir < 0 && startX < targetX) return false; //negative dir, and target is to the right of shooter
-
-    int closestObjX = 1000;
+    int shooter,constDir,target;
+    switch (dirSwitch){
+        case 'x':
+            if (startY != targetY) return false; //need to be on same row to be in sight
+            if (sDir > 0 && startX > targetX) return false; //pos dir, and target is to the left of shooter
+            else if (sDir < 0 && startX < targetX) return false; //negative dir, and target is to the right of shooter
+            constDir = startY;
+            shooter = startX;
+            target = targetX;
+            break;
+        case 'y':
+            if (startX != targetX) return false; //need to be on same col to be in sight
+            if (sDir > 0 && startY > targetY) return false; //pos dir, and target is to the left of shooter
+            else if (sDir < 0 && startY < targetY) return false; //negative dir, and target is to the right of shooter
+            constDir = startX; //const fixed dir
+            shooter = startY; //target var of shooter
+            target = targetY;
+            break;
+    }
+    int closestObj = 1000;
     while (it != actors_.end())
     {
-        if ((*it)->getY() == startY){
-            int xVar = (*it)->getX();
-            if (sDir > 0 && xVar < startX) break;
-            else if (sDir < 0 && xVar > startX) break;
-            if (abs(xVar-startX) < abs(closestObjX-startX) ) closestObjX = xVar;
-        }
+        if (*it == Bot) break; //ignore self
+        //compare distance from each actor to start
+        avatar_->compareDist(*it, constDir, shooter, closestObj, dirSwitch, sDir);
         it++;
     }
-    return (closestObjX < targetX) ? false : true;
-}
-bool isPlayerInSightY(vector<Actor*> &actors_, int startX, int startY, Avatar *avatar_, int sDir, int targetX, int targetY)
-{
-    vector<Actor*>::iterator it = actors_.begin();
-    if (startX != targetX) return false; //need to be on same row to be in sight
-    if (sDir > 0 && startY > targetX) return false; //pos dir, and target is to the left of shooter
-    else if (sDir < 0 && startY < targetY) return false; //negative dir, and target is to the right of shooter
-    int closestObjX = 1000;
-    while (it != actors_.end())
-    {
-        if ((*it)->getX() == startX){
-            int YVar = (*it)->getY();
-            if (sDir > 0 && YVar < startY) break;
-            else if (sDir < 0 && YVar > startY) break;
-            if (abs(YVar-startY) < abs(closestObjX-startY) ) closestObjX = YVar;
-        }
-        it++;
-    }
-    return (closestObjX < targetY) ? false : true;
+    return (abs(shooter-closestObj) < abs(shooter-target)) ? false : true;
 }
 
 GameWorld* createStudentWorld(string assetPath)
@@ -158,31 +152,39 @@ StudentWorld::~StudentWorld()
 {
     cleanUp(); //delete any remaining actors when game ends with destructor. 
 }
-bool StudentWorld::firePeaBot(int startX, int startY, int dir, int targetX, int targetY)
+bool StudentWorld::firePeaBot(int startX, int startY, int dir, int targetX, int targetY, Actor* Bot)
 {
     //check if any obstacles between bot and player
         //is the next thing in line of sight player?
     switch(dir){
         case 0: //right
-            if (isPlayerInSightX(actors_, startX, startY, avatar_, 1, targetX, targetY))
+            if (isPlayerInSight(actors_, startX, startY, avatar_, 1, targetX, targetY, 'x', Bot)){
                 actors_.push_back(new Pea(startX+1, startY,this, 0));
+                return true;
+            }
             break; 
         case 90: //up
-            if (isPlayerInSightY(actors_, startX, startY, avatar_, 1, targetX, targetY)) 
+            if (isPlayerInSight(actors_, startX, startY, avatar_, 1, targetX, targetY, 'y', Bot)){
                 actors_.push_back(new Pea(startX, startY+1,this, 90));
+                return true;
+            }
             break;
         case 180: //left
-            if (isPlayerInSightX(actors_, startX, startY, avatar_, -1, targetX, targetY)) 
-                actors_.push_back(new Pea(startX-1, startY,this, 0));
+            if (isPlayerInSight(actors_, startX, startY, avatar_, -1, targetX, targetY, 'x', Bot)){
+                actors_.push_back(new Pea(startX-1, startY,this, 180));
+                return true;
+            }
             break;
         case 270: //down
-            if (isPlayerInSightY(actors_, startX, startY, avatar_, -1, targetX, targetY)) 
+            if (isPlayerInSight(actors_, startX, startY, avatar_, -1, targetX, targetY, 'y', Bot)){
                 actors_.push_back(new Pea(startX, startY-1,this, 270));
+                return true;
+            }
             break;
         default:
             break;
     }
-    return true;
+    return false;
 
 }
 void StudentWorld::peaDamage(int startX, int startY, Actor *pea)
@@ -190,21 +192,30 @@ void StudentWorld::peaDamage(int startX, int startY, Actor *pea)
     vector<Actor*>::iterator it = actors_.begin();
     //check actors first
     bool alive = true;
+    //20240220 soln
     while (it != actors_.end())
     {
+        //damage if 
+        if ((*it)->isAffectedByPea()) {
+            if ((*it)->damage(startX, startY)) alive = false;
+        }
+        it++;
+    }
+    //outdated
+    while (it != actors_.end())
+    {
+        //damage if 
         if ((*it)->getX() == startX && (*it)->getY() == startY && (*it)->isAffectedByPea()) {
-            (*it)->damage();
+            (*it)->damage(startX, startY);
             alive = false;
         }
         it++;
     }
     //then check avatar
-    if (avatar_->getX() == startX && avatar_->getY() == startY)
-    {
-        avatar_->damage();
+    if (avatar_->damage(startX, startY)) {
         alive = false;
         pea->die();
-    }
+    };
     if (!alive) pea->die();
  
 }

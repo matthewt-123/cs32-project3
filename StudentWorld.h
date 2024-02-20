@@ -23,7 +23,7 @@ public:
   virtual void cleanUp();
   bool moveActor(Actor* actor, int newX, int newY);
   void peaDamage(int startX, int startY, Actor* pea);
-  bool firePeaBot(int startX, int startY, int dir, int targetX, int targetY); //return true if able to fire, false if not
+  bool firePeaBot(int startX, int startY, int dir, int targetX, int targetY, Actor* Bot); //return true if able to fire, false if not
   Actor *getAvatar() {return avatar_;};
 private:
   int loadLevel();

@@ -21,6 +21,25 @@ void moveDir(int dir, int &x, int &y){
             break;
     }
 }
+//usage: a is an actor input, constDir is the variable held const(row/col)
+//target is the target val, closestObj is the closest obj to 
+//
+void Actor::compareDist(Actor* a, int constDir, int shooter, int &closestObj, char dir, int sDir){
+    //1: ignore non in line actors
+    int cVar = 0; //variable coordinate(actual)
+    if (dir == 'x') {
+        if (a->getY() != constDir) return; //if not in row
+        cVar = a->getX();
+
+    } else if (dir == 'y'){
+        if (a->getX() != constDir) return; //if not in col
+        cVar = a->getY();
+    }
+    if (sDir > 0 && cVar < shooter) return; //pos dir, and obj is behind shooter
+    else if (sDir < 0 && cVar > shooter) return; //neg dir and obj is in front of shooter
+    if (abs(cVar-shooter) < abs(closestObj-shooter) ) closestObj = cVar; //if obj-shooter closer than prev closestobj-shooter, update
+}
+
 
 /**************
 Actor::Living ABC
@@ -112,20 +131,25 @@ void RageBot::doSomething()
 {
     if (!isAlive()) return;
     Actor *avatar = getWorld()->getAvatar();
-    if (tickCt_ % ticks_ == 0) getWorld()->firePeaBot(getX(), getY(),getDirection(), avatar->getX(), avatar->getY());
-    else {
-        int x = getX();
-        int y = getY();
-        moveDir(getDirection(), x,y);
-        if (!getWorld()->moveActor(this, x,y)) setDirection(getDirection() - 180);
-    }
+    if (tickCt_ % ticks_ == 0){
+        if (!getWorld()->firePeaBot(getX(), getY(),getDirection(), avatar->getX(), avatar->getY(), this)){ //if no fire
+            //move
+            int x = getX(); 
+            int y = getY();
+            moveDir(getDirection(), x,y);
+            if (!getWorld()->moveActor(this, x,y)) setDirection(getDirection() - 180);
+        }
+
+    } 
     tickCt_++;
 }
-void Living::damage()
+bool Living::damage(int x, int y)
 {
+    if (x != getX() || y != getY()) return false; //cannot damage obj not on square
     updateHitpoints(-2);
     if(getHitpoints() <= 0) {
         die();
     }
     cerr << "ouch";
+    return true;
 }
