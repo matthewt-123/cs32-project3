@@ -65,6 +65,7 @@ int StudentWorld::loadLevel()
     string levelStr = "level" + levelInt + ".txt";
     Level lev(assetPath());
     Level::LoadResult result = lev.loadLevel(levelStr);
+
     if (result == Level::load_fail_file_not_found ||result == Level:: load_fail_bad_format)
         return GWSTATUS_LEVEL_ERROR; //error
     for (int i = 0; i < 15; i++){ //column
@@ -99,9 +100,12 @@ int StudentWorld::loadLevel()
 }
 int StudentWorld::init()
 {
+    bonusPts_ = crystalCt_ = 0;
+    levelFinish_ = false;    
+
     int r = loadLevel();
     if (r != GWSTATUS_CONTINUE_GAME) return r; //error loading game
-    levelFinish_ = false;
+    //reset member vars:
     return GWSTATUS_CONTINUE_GAME;
 }
 
