@@ -24,20 +24,20 @@ void moveDir(int dir, int &x, int &y){
 //usage: a is an actor input, constDir is the variable held const(row/col)
 //target is the target val, closestObj is the closest obj to 
 //
-void Actor::compareDist(Actor* a, int constDir, int shooter, int &closestObj, char dir, int sDir){
+void Actor::compareDist(int constDir, int shooter, int &closestObj, char dir, int sDir){
     //1: ignore non in line actors
     int cVar = 0; //variable coordinate(actual)
     if (dir == 'x') {
-        if (a->getY() != constDir) return; //if not in row
-        cVar = a->getX();
-
+        if (getY() != constDir) return; //if not in row
+        cVar = getX();
     } else if (dir == 'y'){
-        if (a->getX() != constDir) return; //if not in col
-        cVar = a->getY();
+        if (getX() != constDir) return; //if not in col
+        cVar = getY();
     }
+    //cVar is the variable direction of the actor
     if (sDir > 0 && cVar < shooter) return; //pos dir, and obj is behind shooter
     else if (sDir < 0 && cVar > shooter) return; //neg dir and obj is in front of shooter
-    if (abs(cVar-shooter) < abs(closestObj-shooter) ) closestObj = cVar; //if obj-shooter closer than prev closestobj-shooter, update
+    if (abs(cVar-shooter) < abs(closestObj-shooter) ) closestObj = cVar;//if obj-shooter closer than prev closestobj-shooter, update
 }
 
 
@@ -113,7 +113,6 @@ void Pea::doSomething()
     moveDir(getDirection(), x, y);
     moveTo(x,y);
     getWorld()->peaDamage(getX(),getY(), this);
-
 }
 
 /****************
@@ -152,4 +151,39 @@ bool Living::damage(int x, int y)
     }
     cerr << "ouch";
     return true;
+}
+/*************
+Actor::NotAlive::Goodie is an ABC
+**************/
+Goodie::Goodie(double startX, double startY, int imageID, StudentWorld *world, int pts)
+:NotAlive(startX, startY, imageID, world)
+{
+    points_ = pts;
+}
+
+void Crystal::doSomething()
+{
+    if (getWorld()->getAvatar()->onSameSquare(getX(), getY()))
+    {
+        getWorld()->increaseScore(getPoints());
+        die();
+        getWorld()->playSound(SOUND_GOT_GOODIE);
+        getWorld()->collectCrystal(); //decrement crystal ct
+    }
+}
+
+void Exit::doSomething()
+{
+    if (!active_){
+        if (getWorld()->remainingCrystals() > 0) return;
+        else {
+            active_ = true;
+            setVisible(true);
+        };
+    }
+    if (getWorld()->getAvatar()->onSameSquare(getX(), getY()))
+    {
+        getWorld()->increaseScore(getPoints());
+        getWorld()->levelComplete();
+    }
 }

@@ -9,16 +9,16 @@
 //targetX, Y is coord of player
 bool isPlayerInSight(vector<Actor*> &actors_, int startX, int startY, Avatar *avatar_, int sDir, int targetX, int targetY, char dirSwitch, Actor* Bot)
 {
-    vector<Actor*>::iterator it = actors_.begin();
     int shooter,constDir,target;
     switch (dirSwitch){
         case 'x':
             if (startY != targetY) return false; //need to be on same row to be in sight
             if (sDir > 0 && startX > targetX) return false; //pos dir, and target is to the left of shooter
             else if (sDir < 0 && startX < targetX) return false; //negative dir, and target is to the right of shooter
-            constDir = startY;
-            shooter = startX;
+            constDir = startY; //need to be in same col
+            shooter = startX; //target var of shooter
             target = targetX;
+            cerr << constDir;
             break;
         case 'y':
             if (startX != targetX) return false; //need to be on same col to be in sight
@@ -30,12 +30,17 @@ bool isPlayerInSight(vector<Actor*> &actors_, int startX, int startY, Avatar *av
             break;
     }
     int closestObj = 1000;
+    vector<Actor*>::iterator it = actors_.begin();
+    while (it != actors_.end()) {it++;};
+    it = actors_.begin();
     while (it != actors_.end())
     {
-        if (*it == Bot) break; //ignore self
-        //compare distance from each actor to start
-        avatar_->compareDist(*it, constDir, shooter, closestObj, dirSwitch, sDir);
-        it++;
+        if (*it != Bot) { //ignore self
+            //compare distance from each actor to start
+            (*it)->compareDist(constDir, shooter, closestObj, dirSwitch, sDir);
+        }
+        it++;    
+
     }
     return (abs(shooter-closestObj) < abs(shooter-target)) ? false : true;
 }
@@ -44,13 +49,13 @@ GameWorld* createStudentWorld(string assetPath)
 {
 	return new StudentWorld(assetPath);
 }
-
 // Students:  Add code to this file, StudentWorld.h, Actor.h, and Actor.cpp
 
 StudentWorld::StudentWorld(string assetPath)
 : GameWorld(assetPath)
 {
     bonusPts_ = 1000;
+    crystalCt_ = 0;
 }
 int StudentWorld::loadLevel()
 {
@@ -79,6 +84,14 @@ int StudentWorld::loadLevel()
                 case Level::vert_ragebot:
                     actors_.push_back(new RageBot(i,j,this, 270));
                     break;
+                case Level::crystal:
+                    actors_.push_back(new Crystal(i,j,this));
+                    crystalCt_++;
+                    break;
+                case Level::exit:
+                    actors_.push_back(new Exit(i,j,this));
+                    break;
+
             }
         }
     }
@@ -88,6 +101,7 @@ int StudentWorld::init()
 {
     int r = loadLevel();
     if (r != GWSTATUS_CONTINUE_GAME) return r; //error loading game
+    levelFinish_ = false;
     return GWSTATUS_CONTINUE_GAME;
 }
 
@@ -109,9 +123,9 @@ int StudentWorld::move()
             it = actors_.erase(it);
         }
         else it++;
-
     }
     bonusPts_--;
+    if (levelFinish_) return GWSTATUS_FINISHED_LEVEL;
     setGameStatText("Game will end when you type q");
 
 	return GWSTATUS_CONTINUE_GAME; 
@@ -134,15 +148,15 @@ bool StudentWorld::moveActor(Actor* actor, int newX, int newY)
     vector<Actor*>::iterator it = actors_.begin();
     while (it != actors_.end())
     {
-        if (actor->onSameSquare(*it, newX, newY)){
+        if ((*it)->onSameSquare(newX, newY)){
             if ((*it) == actor) break; //ignore self
             //check if it is alive(cannot move onto non living objects)
             if ((*it)->isAffectedByPea()) return false; //is a wall or factory
-            if ((*it)->canCollect()) cerr << "COLLECT ME"; //COLLECT ME!!
+            // if ((*it)->canCollect()) cerr << "COLLECT ME"; //COLLECT ME!!
         }
         it++;
     }
-    if (actor->onSameSquare(avatar_, newX, newY)) return false; //check avatar
+    if (avatar_->onSameSquare(newX, newY)) return false; //check avatar
     //move actor
     actor->moveTo(newX, newY);
     return true;
@@ -187,35 +201,31 @@ bool StudentWorld::firePeaBot(int startX, int startY, int dir, int targetX, int 
     return false;
 
 }
-void StudentWorld::peaDamage(int startX, int startY, Actor *pea)
+bool StudentWorld::peaDamage(int startX, int startY, Actor *pea)
 {
-    vector<Actor*>::iterator it = actors_.begin();
     //check actors first
     bool alive = true;
     //20240220 soln
+    vector<Actor*>::iterator it = actors_.begin();
     while (it != actors_.end())
     {
-        //damage if 
+        //damage if possible
         if ((*it)->isAffectedByPea()) {
-            if ((*it)->damage(startX, startY)) alive = false;
+            if ((*it)->damage(startX, startY)) pea->die();
         }
         it++;
     }
-    //outdated
-    while (it != actors_.end())
-    {
-        //damage if 
-        if ((*it)->getX() == startX && (*it)->getY() == startY && (*it)->isAffectedByPea()) {
-            (*it)->damage(startX, startY);
-            alive = false;
-        }
-        it++;
-    }
+    if (!pea->isAlive()) return false;
     //then check avatar
     if (avatar_->damage(startX, startY)) {
-        alive = false;
         pea->die();
+        return false;
     };
-    if (!alive) pea->die();
- 
+    return true;
+}
+void StudentWorld::collectCrystal(){
+    crystalCt_--;
+    if (crystalCt_ <= 0){
+        cerr << "the exit (Conan Gray)";
+    }
 }

@@ -22,14 +22,19 @@ public:
   virtual int move();
   virtual void cleanUp();
   bool moveActor(Actor* actor, int newX, int newY);
-  void peaDamage(int startX, int startY, Actor* pea);
+  bool peaDamage(int startX, int startY, Actor* pea); //true if damaged false if pea died
   bool firePeaBot(int startX, int startY, int dir, int targetX, int targetY, Actor* Bot); //return true if able to fire, false if not
+  void collectCrystal();
+  int remainingCrystals() {return crystalCt_;};
+  void levelComplete() {levelFinish_=true;};
   Actor *getAvatar() {return avatar_;};
 private:
   int loadLevel();
   vector<Actor *> actors_; //vector of all actor
   Avatar *avatar_;
   int bonusPts_;
+  int crystalCt_;
+  bool levelFinish_;
 };
 
 #endif // STUDENTWORLD_H_

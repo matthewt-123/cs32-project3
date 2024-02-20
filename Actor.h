@@ -22,16 +22,16 @@ class Actor : public GraphObject
         Actor(StudentWorld *world, int imageID, double startX, double startY,int dir=-1) 
         :GraphObject(imageID, startX, startY ,dir)
         {world_=world; alive_=true;setVisible(true);};
-        void die() {alive_ = false;}; //kill actor -> alive is false and should be removed
+        void die() {setVisible(false);alive_ = false;}; //kill actor -> alive is false and should be removed
         virtual ~Actor() {return;}; //deleting actor should not delete student world
         virtual void doSomething() = 0;
-        virtual bool damage(int x, int y) {return false;}; //default: nothing happens when hit by pea
+        virtual bool damage(int x, int y) {return (getX() == x && getY() == y) ? true : false;}; //default: pea dies when hitting obj
         virtual bool canDie() {return false;}; //default actors cannot die(walls, factories)
         virtual bool canCollect() {return false;}; //cannot collect default actors
         bool isAlive() {return alive_;}; //getter function
         virtual bool isAffectedByPea() {return true;};
-        bool onSameSquare(Actor* a1, int x, int y){return (a1->getX() == x && a1->getY() == y) ? true : false;};
-        void compareDist(Actor* a, int constDir, int target, int &closestObj, char dir, int sDir);
+        bool onSameSquare(int x, int y){return (getX() == x && getY() == y) ? true : false;};
+        void compareDist(int constDir, int target, int &closestObj, char dir, int sDir);
         StudentWorld *getWorld() {return world_;};
     private:
         StudentWorld *world_;
@@ -104,9 +104,37 @@ class Pea : public NotAlive
     public:
         Pea(double startX, double startY, StudentWorld *world, int dir);
         virtual void doSomething();
+
     private:
         int dir_;
 
 };
+class Goodie : public NotAlive
+{
+    public:
+        Goodie(double startX, double startY, int imageID, StudentWorld *world, int pts);
+        virtual bool canCollect() {return true;};
 
+        int getPoints() {return points_;};
+    private:
+        int points_; //associated points
+};
+
+class Crystal : public Goodie
+{
+    public:
+        Crystal(double startX, double startY, StudentWorld *world)
+            :Goodie(startX, startY, IID_CRYSTAL, world, 50) {}
+        virtual void doSomething();
+
+};
+class Exit : public Goodie
+{
+    public:
+        Exit(double startX, double startY, StudentWorld *world)
+            :Goodie(startX, startY, IID_EXIT, world, 2000) {active_=false;setVisible(false);};
+        virtual void doSomething();
+    private:
+        bool active_;
+};
 #endif // ACTOR_H_
