@@ -5,6 +5,7 @@
 #include <vector>
 #include <string>
 #include <sstream>    // header file for stringstream
+#include <iomanip>  // defines the manipulator setw
 //sDir: +1 for pos dir, -1 for neg dir
 //targetX, Y is coord of player
 bool isPlayerInSight(vector<Actor*> &actors_, int startX, int startY, Avatar *avatar_, int sDir, int targetX, int targetY, char dirSwitch, Actor* Bot)
@@ -102,13 +103,54 @@ int StudentWorld::init()
 {
     bonusPts_ = crystalCt_ = 0;
     levelFinish_ = false;    
+    bonusPts_ = 1000;
 
     int r = loadLevel();
     if (r != GWSTATUS_CONTINUE_GAME) return r; //error loading game
     //reset member vars:
     return GWSTATUS_CONTINUE_GAME;
 }
+string StudentWorld::formatString()
+{
+    string output = "";
+    ostringstream oss;
+	oss.setf(ios::fixed);
+    oss.fill('0');
+    oss << "  Score: " << setw(7) << getScore();
+    output += oss.str();
 
+    ostringstream level;
+	level.setf(ios::fixed);
+    level.fill('0');
+    level << "  Level: " << setw(2) << getLevel();
+    output += level.str();
+
+    ostringstream lives;
+	lives.setf(ios::fixed);
+    lives.fill(' ');
+    lives << "  Lives: " << setw(2) << getLives();
+    output += lives.str();
+
+    ostringstream health;
+	health.setf(ios::fixed);
+	health.precision(0);
+    health.fill(' ');
+    health << "  Health: " << setw(3) << (avatar_->getHitpoints() / 20.0) * 100 << "%"; //float division
+    output += health.str();
+
+    ostringstream ammo;
+	ammo.setf(ios::fixed);
+    ammo.fill(' ');
+    ammo << "  Ammo: " << setw(2) << (avatar_->getAmmo());
+    output += ammo.str();
+
+    ostringstream bonus;
+	bonus.setf(ios::fixed);
+    bonus.fill(' ');
+    bonus << "  Bonus: " << setw(2) << bonusPts_;
+    output += bonus.str();
+    return output;
+}
 int StudentWorld::move()
 {
     // This code is here merely to allow the game to build, run, and terminate after you type q
@@ -128,9 +170,12 @@ int StudentWorld::move()
         }
         else it++;
     }
-    bonusPts_--;
-    if (levelFinish_) return GWSTATUS_FINISHED_LEVEL;
-    setGameStatText("Game will end when you type q");
+    if (bonusPts_ > 0) bonusPts_--;
+    if (levelFinish_) {
+        increaseScore(bonusPts_);
+        return GWSTATUS_FINISHED_LEVEL;
+    }
+    setGameStatText(formatString());
 
 	return GWSTATUS_CONTINUE_GAME; 
 }
@@ -169,6 +214,24 @@ bool StudentWorld::moveActor(Actor* actor, int newX, int newY)
 StudentWorld::~StudentWorld()
 {
     cleanUp(); //delete any remaining actors when game ends with destructor. 
+}
+void StudentWorld::firePlayer(int startX, int startY, int dir)
+{
+    switch(dir)
+    {
+        case 0: //right
+            actors_.push_back(new Pea(startX+1, startY,this, dir));
+            break;
+        case 90: //up
+            actors_.push_back(new Pea(startX, startY+1,this, dir));
+            break;
+        case 180:
+            actors_.push_back(new Pea(startX-1, startY,this, dir));
+            break;
+        case 270:
+            actors_.push_back(new Pea(startX, startY-1,this, dir));
+            break;
+    }
 }
 bool StudentWorld::firePeaBot(int startX, int startY, int dir, int targetX, int targetY, Actor* Bot)
 {
@@ -226,10 +289,4 @@ bool StudentWorld::peaDamage(int startX, int startY, Actor *pea)
         return false;
     };
     return true;
-}
-void StudentWorld::collectCrystal(){
-    crystalCt_--;
-    if (crystalCt_ <= 0){
-        cerr << "the exit (Conan Gray)";
-    }
 }

@@ -24,11 +24,13 @@ public:
   bool moveActor(Actor* actor, int newX, int newY);
   bool peaDamage(int startX, int startY, Actor* pea); //true if damaged false if pea died
   bool firePeaBot(int startX, int startY, int dir, int targetX, int targetY, Actor* Bot); //return true if able to fire, false if not
-  void collectCrystal();
+  void firePlayer(int startX, int startY, int dir);
+  void collectCrystal() {crystalCt_--;};
   int remainingCrystals() {return crystalCt_;};
   void levelComplete() {levelFinish_=true;};
   Actor *getAvatar() {return avatar_;};
 private:
+  string formatString();
   int loadLevel();
   vector<Actor *> actors_; //vector of all actor
   Avatar *avatar_;

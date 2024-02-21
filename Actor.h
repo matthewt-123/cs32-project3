@@ -54,14 +54,16 @@ class Wall : public Actor
 class Living : public Actor
 {
     public:
-        Living(double startX, double startY, int imageID, StudentWorld *world,int hp,int dir=none)
+        Living(double startX, double startY, int imageID, StudentWorld *world,int hp,int deathSound_, int impactSound_,int dir=none)
         :Actor(world, imageID, startX, startY,dir){hitpoints_=hp;};
         virtual bool canDie() {return true;};
-        virtual bool damage(int x, int y); //default: remove 2 hp and dies if no hp left
         virtual void doSomething() = 0; //is an ABC, cannot be directly created
         int getHitpoints() {return hitpoints_;};
         bool updateHitpoints(int hp); //if returns false, stop dosomething
+        bool damage(int x, int y);
     private:
+        int deathSound_;
+        int impactSound_;
         int hitpoints_;
 };
 //Living Object: Avatar
@@ -70,6 +72,7 @@ class Avatar : public Living
     public:
         Avatar(double startX, double startY, StudentWorld *world);
         virtual void doSomething(); 
+        int getAmmo() {return numPeas_;};
     private:
         int numPeas_;
 };
@@ -80,6 +83,7 @@ class RageBot : public Living
     public:
         RageBot(double startX, double startY, StudentWorld *world, int dir);
         virtual void doSomething();
+        virtual void die();
     private:
         int ticks_;
         int tickCt_;

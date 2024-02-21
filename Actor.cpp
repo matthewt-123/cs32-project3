@@ -59,9 +59,8 @@ bool Living::updateHitpoints(int hp)
 Actor::Living::Avatar
 *****************/
 Avatar::Avatar(double startX, double startY, StudentWorld *world)
-:Living(startX, startY, IID_PLAYER, world, right, 20)
+:Living(startX, startY, IID_PLAYER, world, 20, SOUND_PLAYER_IMPACT, SOUND_PLAYER_DIE, right)
 {
-    updateHitpoints(20);
     numPeas_ = 20;
 }
 
@@ -89,7 +88,13 @@ void Avatar::doSomething()
                 break;
             case KEY_PRESS_ESCAPE:
                 die();
-                return;
+                break;
+            case KEY_PRESS_SPACE:
+                if (numPeas_ > 0){
+                    getWorld()->firePlayer(getX(), getY(), getDirection());
+                    numPeas_--;
+                    getWorld()->playSound(SOUND_PLAYER_FIRE);
+                }
                 break;
             default:
                 break;
@@ -119,7 +124,7 @@ void Pea::doSomething()
 Actor::Living::RageBot
 *****************/
 RageBot::RageBot(double startX, double startY, StudentWorld *world, int dir)
-:Living(startX, startY, IID_RAGEBOT, world, 10, dir)
+:Living(startX, startY, IID_RAGEBOT, world, 10, SOUND_ROBOT_IMPACT, SOUND_ROBOT_DIE, dir)
 {
     tickCt_ = 0;
     ticks_=(28-world->getLevel())/4;
@@ -142,13 +147,21 @@ void RageBot::doSomething()
     } 
     tickCt_++;
 }
+void RageBot::die(){
+     
+}
+
 bool Living::damage(int x, int y)
 {
     if (x != getX() || y != getY()) return false; //cannot damage obj not on square
     updateHitpoints(-2);
+    cerr << getHitpoints();
     if(getHitpoints() <= 0) {
         die();
+        getWorld()->playSound(deathSound_);
+
     }
+    getWorld()->playSound(impactSound_);
     cerr << "ouch";
     return true;
 }
