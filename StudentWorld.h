@@ -10,8 +10,8 @@
 using namespace std;
 
 // Students:  Add code to this file, StudentWorld.cpp, Actor.h, and Actor.cpp
-// class Actor; 
-// class Avatar;
+class Actor; 
+class Avatar;
 
 class StudentWorld : public GameWorld
 {
@@ -28,9 +28,13 @@ public:
   void collectCrystal() {crystalCt_--;};
   int remainingCrystals() {return crystalCt_;};
   void levelComplete() {levelFinish_=true;};
-  Actor *getAvatar() {return avatar_;};
+  Avatar *getAvatar() {return avatar_;};
+  bool stealGoodie(Actor *thiefBot, int x, int y);
+  void addActor(Actor *actor) {actors_.push_back(actor);};
+  int countThiefBots(double startX, double endX, double startY, double endY);
 private:
   string formatString();
+  bool isPlayerInSight(int startX, int startY, Avatar *avatar_, int sDir, int targetX, int targetY, char dirSwitch, Actor* Bot);
   int loadLevel();
   vector<Actor *> actors_; //vector of all actor
   Avatar *avatar_;

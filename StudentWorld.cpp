@@ -8,7 +8,7 @@
 #include <iomanip>  // defines the manipulator setw
 //sDir: +1 for pos dir, -1 for neg dir
 //targetX, Y is coord of player
-bool isPlayerInSight(vector<Actor*> &actors_, int startX, int startY, Avatar *avatar_, int sDir, int targetX, int targetY, char dirSwitch, Actor* Bot)
+bool StudentWorld::isPlayerInSight(int startX, int startY, Avatar *avatar_, int sDir, int targetX, int targetY, char dirSwitch, Actor* Bot)
 {
     int shooter,constDir,target;
     switch (dirSwitch){
@@ -36,7 +36,7 @@ bool isPlayerInSight(vector<Actor*> &actors_, int startX, int startY, Avatar *av
     it = actors_.begin();
     while (it != actors_.end())
     {
-        if (*it != Bot) { //ignore self
+        if (*it != Bot && (*it)->isAffectedByPea()) { //ignore self
             //compare distance from each actor to start
             (*it)->compareDist(constDir, shooter, closestObj, dirSwitch, sDir);
         }
@@ -85,7 +85,7 @@ int StudentWorld::loadLevel()
                     break;
                 case Level::vert_ragebot:
                     actors_.push_back(new RageBot(i,j,this, 270));
-                    break;
+                    break;             
                 case Level::crystal:
                     actors_.push_back(new Crystal(i,j,this));
                     crystalCt_++;
@@ -93,6 +93,18 @@ int StudentWorld::loadLevel()
                 case Level::exit:
                     actors_.push_back(new Exit(i,j,this));
                     break;
+                case Level::ammo:
+                    actors_.push_back(new AmmoGoodie(i,j,this));
+                    break;
+                case Level::extra_life:
+                    actors_.push_back(new ExtraLifeGoodie(i,j,this));
+                    break;    
+                case Level::mean_thiefbot_factory:
+                    actors_.push_back(new Factory(i,j,this, 'm'));
+                    break;    
+                case Level::thiefbot_factory:
+                    actors_.push_back(new Factory(i,j,this, 't'));
+                    break;                
 
             }
         }
@@ -147,7 +159,7 @@ string StudentWorld::formatString()
     ostringstream bonus;
 	bonus.setf(ios::fixed);
     bonus.fill(' ');
-    bonus << "  Bonus: " << setw(2) << bonusPts_;
+    bonus << "  Bonus: " << setw(4) << bonusPts_;
     output += bonus.str();
     return output;
 }
@@ -201,13 +213,11 @@ bool StudentWorld::moveActor(Actor* actor, int newX, int newY)
             if ((*it) == actor) break; //ignore self
             //check if it is alive(cannot move onto non living objects)
             if ((*it)->isAffectedByPea()) return false; //is a wall or factory
-            // if ((*it)->canCollect()) cerr << "COLLECT ME"; //COLLECT ME!!
         }
         it++;
     }
     if (avatar_->onSameSquare(newX, newY)) return false; //check avatar
     //move actor
-    actor->moveTo(newX, newY);
     return true;
 }
 
@@ -239,25 +249,25 @@ bool StudentWorld::firePeaBot(int startX, int startY, int dir, int targetX, int 
         //is the next thing in line of sight player?
     switch(dir){
         case 0: //right
-            if (isPlayerInSight(actors_, startX, startY, avatar_, 1, targetX, targetY, 'x', Bot)){
+            if (isPlayerInSight(startX, startY, avatar_, 1, targetX, targetY, 'x', Bot)){
                 actors_.push_back(new Pea(startX+1, startY,this, 0));
                 return true;
             }
             break; 
         case 90: //up
-            if (isPlayerInSight(actors_, startX, startY, avatar_, 1, targetX, targetY, 'y', Bot)){
+            if (isPlayerInSight(startX, startY, avatar_, 1, targetX, targetY, 'y', Bot)){
                 actors_.push_back(new Pea(startX, startY+1,this, 90));
                 return true;
             }
             break;
         case 180: //left
-            if (isPlayerInSight(actors_, startX, startY, avatar_, -1, targetX, targetY, 'x', Bot)){
+            if (isPlayerInSight(startX, startY, avatar_, -1, targetX, targetY, 'x', Bot)){
                 actors_.push_back(new Pea(startX-1, startY,this, 180));
                 return true;
             }
             break;
         case 270: //down
-            if (isPlayerInSight(actors_, startX, startY, avatar_, -1, targetX, targetY, 'y', Bot)){
+            if (isPlayerInSight(startX, startY, avatar_, -1, targetX, targetY, 'y', Bot)){
                 actors_.push_back(new Pea(startX, startY-1,this, 270));
                 return true;
             }
@@ -270,6 +280,7 @@ bool StudentWorld::firePeaBot(int startX, int startY, int dir, int targetX, int 
 }
 bool StudentWorld::peaDamage(int startX, int startY, Actor *pea)
 {
+    if (!pea->isAlive()) return false;
     //check actors first
     bool alive = true;
     //20240220 soln
@@ -290,3 +301,39 @@ bool StudentWorld::peaDamage(int startX, int startY, Actor *pea)
     };
     return true;
 }
+
+bool StudentWorld::stealGoodie(Actor *thiefBot, int x, int y){
+    vector<Actor*>::iterator it = actors_.begin();
+    bool r_val = false;
+    while (it != actors_.end())
+    {
+        if ((*it)->onSameSquare(x, y)) {
+            //damage if possible
+            if ((*it)->canCollect()) {
+                r_val = true; //returns true if on same square as goodie
+                if (rand()%10 == 6){
+                    thiefBot->collectGoodie(*it);
+                    actors_.erase(it); //remove from actors array and store address in thiefbot
+                    playSound(SOUND_ROBOT_MUNCH);
+                    return true;
+                }
+            }
+        }
+        it++;
+    }    
+    return r_val;
+}
+int StudentWorld::countThiefBots(double startX, double endX, double startY, double endY)
+{
+    vector<Actor*>::iterator it = actors_.begin();
+    int ct = 0;
+    while (it != actors_.end())
+    {
+        if ((*it)->isThiefBot() && (*it)->inRange(startX, endX, startY, endY)) {
+            ct++;
+        }
+        it++;
+    }    
+    return ct;
+}
+

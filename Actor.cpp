@@ -72,19 +72,19 @@ void Avatar::doSomething()
         switch (ch){
             case KEY_PRESS_LEFT:
                 setDirection(left);
-                getWorld()->moveActor(this, getX()-1,getY());
+                if (getWorld()->moveActor(this, getX()-1,getY())) moveTo(getX()-1, getY());;
                 break;
             case KEY_PRESS_RIGHT:
                 setDirection(right);
-                getWorld()->moveActor(this, getX()+1,getY());
+                if (getWorld()->moveActor(this, getX()+1,getY())) moveTo(getX()+1, getY());
                 break;
             case KEY_PRESS_DOWN:
                 setDirection(down);
-                getWorld()->moveActor(this, getX(),getY()-1);
+                if(getWorld()->moveActor(this, getX(),getY()-1)) moveTo(getX(), getY()-1);
                 break;
             case KEY_PRESS_UP:
                 setDirection(up);
-                getWorld()->moveActor(this, getX(),getY()+1);
+                if (getWorld()->moveActor(this, getX(),getY()+1)) moveTo(getX(), getY()+1);
                 break;
             case KEY_PRESS_ESCAPE:
                 die();
@@ -105,13 +105,12 @@ void Avatar::doSomething()
 Actor::Living::Pea
 *****************/
 Pea::Pea(double startX, double startY, StudentWorld *world, int dir)
-:NotAlive(startX, startY, IID_PEA, world, dir)
+    :NotAlive(startX, startY, IID_PEA, world, dir)
 {
     dir_ = dir;
 }
 void Pea::doSomething()
 {
-    if (!isAlive()) return;
     getWorld()->peaDamage(getX(),getY(), this);
     int x = getX();
     int y = getY();
@@ -120,46 +119,121 @@ void Pea::doSomething()
     getWorld()->peaDamage(getX(),getY(), this);
 }
 
-/****************
-Actor::Living::RageBot
-*****************/
-RageBot::RageBot(double startX, double startY, StudentWorld *world, int dir)
-:Living(startX, startY, IID_RAGEBOT, world, 10, SOUND_ROBOT_IMPACT, SOUND_ROBOT_DIE, dir)
+
+Bot::Bot(double startX, double startY, int imageID, int hp, StudentWorld *world, int deathSound_, int impactSound_,int dir)
+:Living(startX, startY, imageID, world, hp, SOUND_ROBOT_IMPACT, SOUND_ROBOT_DIE, dir)
 {
     tickCt_ = 0;
     ticks_=(28-world->getLevel())/4;
     if (ticks_ < 3) ticks_ = 3;
-};
+}
+bool Bot::isTick()
+{
+    bool r_val = (tickCt_ % ticks_ == 0) ? true : false;
+    tickCt_++;
+    return r_val;
+}
+/****************
+Actor::Living::RageBot
+*****************/
 
 void RageBot::doSomething()
 {
     if (!isAlive()) return;
     Actor *avatar = getWorld()->getAvatar();
-    if (tickCt_ % ticks_ == 0){
+    if (isTick()){
         if (!getWorld()->firePeaBot(getX(), getY(),getDirection(), avatar->getX(), avatar->getY(), this)){ //if no fire
             //move
             int x = getX(); 
             int y = getY();
             moveDir(getDirection(), x,y);
             if (!getWorld()->moveActor(this, x,y)) setDirection(getDirection() - 180);
+            else moveTo(x,y);
         }
-
     } 
-    tickCt_++;
-}
-void RageBot::die(){
-     
 }
 
+/****************
+Actor::Living::ThiefBot
+*****************/
+void ThiefBot::doSomething()
+{
+    if (!isAlive()) return;
+    if (isTick()){
+        stealOrMove();
+    }
+}
+//steal goodie or move, changing direction
+void ThiefBot::stealOrMove()
+{
+    if (goodie_ != nullptr || !getWorld()->stealGoodie(this, getX(), getY())){ //if has goodie or not on same square as goodie
+    int x = getX();
+    int y = getY();
+    //try to move
+    moveDir(getDirection(), x, y);
+    //if exceeded steps in direction OR obstacle
+        //turn
+    //else
+        //move, increment dist travelled
+    if (!getWorld()->moveActor(this, x, y) || distanceTraveled  % distBeforeTurning != 0) {
+        //rand turn
+        int turnCt = 0;
+        bool obstacle = true;
+        while (turnCt < 4 && obstacle){
+            //check all 4 directions, setting random direction
+            int dir = 90 * (rand()%4);
+            turnCt++;
+            int x = getX();
+            int y = getY();
+            moveDir(dir, x,y); //try to move actor
+            if (getWorld()->moveActor(this, x, y)){
+                obstacle = false;
+                setDirection(dir);
+                moveTo(x,y);
+                break;
+            }
+            else obstacle = true;
+        }
+    }
+    else {
+        //else: steps not exceeded and no obstacle
+        moveTo(x,y);
+        distanceTraveled++;
+    }
+}
+}
+void ThiefBot::collectGoodie(Actor *goodie)
+{
+    goodie_ = goodie;
+    goodie_->setVisible(false);
+}
+void ThiefBot::cleanUp()
+{
+    if (goodie_ != nullptr){
+        goodie_->moveTo(getX(), getY());
+        goodie_->setVisible(true);
+        getWorld()->addActor(goodie_);
+        goodie_ = nullptr;
+    }
+}
+ThiefBot::~ThiefBot()
+{
+    if (goodie_ != nullptr) delete goodie_;
+}
+void MeanThiefBot::doSomething()
+{
+    if (isTick()){
+        Avatar *avatar = getWorld()->getAvatar();
+        if (!getWorld()->firePeaBot(getX(), getY(),getDirection(), avatar->getX(), avatar->getY(), this)) stealOrMove();
+    }
+}
 bool Living::damage(int x, int y)
 {
     if (x != getX() || y != getY()) return false; //cannot damage obj not on square
     updateHitpoints(-2);
-    cerr << getHitpoints();
     if(getHitpoints() <= 0) {
         die();
         getWorld()->playSound(deathSound_);
-
     }
     getWorld()->playSound(impactSound_);
     cerr << "ouch";
@@ -173,16 +247,15 @@ Goodie::Goodie(double startX, double startY, int imageID, StudentWorld *world, i
 {
     points_ = pts;
 }
-
-void Crystal::doSomething()
+void Goodie::doSomething()
 {
     if (getWorld()->getAvatar()->onSameSquare(getX(), getY()))
     {
         getWorld()->increaseScore(getPoints());
         die();
         getWorld()->playSound(SOUND_GOT_GOODIE);
-        getWorld()->collectCrystal(); //decrement crystal ct
-    }
+        pickUpGoodie(); //decrement crystal ct
+    } 
 }
 
 void Exit::doSomething()
@@ -190,6 +263,7 @@ void Exit::doSomething()
     if (!active_){
         if (getWorld()->remainingCrystals() > 0) return;
         else {
+            getWorld()->playSound(SOUND_REVEAL_EXIT);
             active_ = true;
             setVisible(true);
         };
@@ -200,3 +274,24 @@ void Exit::doSomething()
         getWorld()->levelComplete();
     }
 }
+void Factory::doSomething()
+{
+    if (getWorld()->countThiefBots(getX()-3, getX() + 3, getY() -3, getY()+3) < 3)
+    {
+        if (rand()%50 == 6){
+            if (botType_ == 'm'){
+                Actor* newMeanThief = new MeanThiefBot(getX(), getY(), getWorld());
+                getWorld()->addActor(newMeanThief);
+            } else if (botType_ == 't') {
+                Actor* newThief = new ThiefBot(getX(), getY(), getWorld());
+                getWorld()->addActor(newThief);
+            }
+            getWorld()->playSound(SOUND_ROBOT_BORN);
+        }
+
+    }
+}
+void HealthGoodie::pickUpGoodie() {getWorld()->getAvatar()->restoreHealth();}; //restore health
+void AmmoGoodie::pickUpGoodie(){getWorld()->getAvatar()->addAmmo(20);}; //add ammo
+void Crystal::pickUpGoodie() {getWorld()->collectCrystal();}; //decrement crystal ct
+void ExtraLifeGoodie::pickUpGoodie() {getWorld()->incLives();}; //add life 
