@@ -3,7 +3,7 @@
 #include <iostream>
 using namespace std;
 // Students:  Add code to this file, Actor.h, StudentWorld.h, and StudentWorld.cpp
-void moveDir(int dir, int &x, int &y){
+void Actor::moveDir(int dir, int &x, int &y){
     switch(dir){
         case 0:
             x++;
@@ -47,11 +47,12 @@ Actor::Living ABC
 //update hp: return true if still alive, false if not
 bool Living::updateHitpoints(int hp)
 {
-    if (hitpoints_ + hp >= 0) {
+    if (hitpoints_ + hp > 0) {
         hitpoints_ += hp;
         return true;
     } else {
         die();
+        getWorld()->playSound(deathSound_);
         return false;
     }
 }
@@ -102,7 +103,7 @@ void Avatar::doSomething()
     }
 }
 /****************
-Actor::Living::Pea
+Actor::NotAlive::Pea
 *****************/
 Pea::Pea(double startX, double startY, StudentWorld *world, int dir)
     :NotAlive(startX, startY, IID_PEA, world, dir)
@@ -118,7 +119,10 @@ void Pea::doSomething()
     moveTo(x,y);
     getWorld()->peaDamage(getX(),getY(), this);
 }
-
+void Pit::doSomething()
+{
+    getWorld()->checkPit(getX(), getY(), this);
+}
 
 Bot::Bot(double startX, double startY, int imageID, int hp, StudentWorld *world, int deathSound_, int impactSound_,int dir)
 :Living(startX, startY, imageID, world, hp, SOUND_ROBOT_IMPACT, SOUND_ROBOT_DIE, dir)
@@ -152,6 +156,7 @@ void RageBot::doSomething()
         }
     } 
 }
+void RageBot::cleanUp() {getWorld()->increaseScore(100);};
 
 /****************
 Actor::Living::ThiefBot
@@ -167,40 +172,40 @@ void ThiefBot::doSomething()
 void ThiefBot::stealOrMove()
 {
     if (goodie_ != nullptr || !getWorld()->stealGoodie(this, getX(), getY())){ //if has goodie or not on same square as goodie
-    int x = getX();
-    int y = getY();
-    //try to move
-    moveDir(getDirection(), x, y);
-    //if exceeded steps in direction OR obstacle
-        //turn
-    //else
-        //move, increment dist travelled
-    if (!getWorld()->moveActor(this, x, y) || distanceTraveled  % distBeforeTurning != 0) {
-        //rand turn
-        int turnCt = 0;
-        bool obstacle = true;
-        while (turnCt < 4 && obstacle){
-            //check all 4 directions, setting random direction
-            int dir = 90 * (rand()%4);
-            turnCt++;
-            int x = getX();
-            int y = getY();
-            moveDir(dir, x,y); //try to move actor
-            if (getWorld()->moveActor(this, x, y)){
-                obstacle = false;
-                setDirection(dir);
-                moveTo(x,y);
-                break;
+        int x = getX();
+        int y = getY();
+        //try to move
+        moveDir(getDirection(), x, y);
+        //if exceeded steps in direction OR obstacle
+            //turn
+        //else
+            //move, increment dist travelled
+        if (!getWorld()->moveActor(this, x, y) || distanceTraveled  % distBeforeTurning != 0) {
+            //rand turn
+            int turnCt = 0;
+            bool obstacle = true;
+            while (turnCt < 4 && obstacle){
+                //check all 4 directions, setting random direction
+                int dir = 90 * (rand()%4);
+                turnCt++;
+                int x = getX();
+                int y = getY();
+                moveDir(dir, x,y); //try to move actor
+                if (getWorld()->moveActor(this, x, y)){
+                    obstacle = false;
+                    setDirection(dir);
+                    moveTo(x,y);
+                    break;
+                }
+                else obstacle = true;
             }
-            else obstacle = true;
+        }
+        else {
+            //else: steps not exceeded and no obstacle
+            moveTo(x,y);
+            distanceTraveled++;
         }
     }
-    else {
-        //else: steps not exceeded and no obstacle
-        moveTo(x,y);
-        distanceTraveled++;
-    }
-}
 }
 void ThiefBot::collectGoodie(Actor *goodie)
 {
@@ -208,6 +213,11 @@ void ThiefBot::collectGoodie(Actor *goodie)
     goodie_->setVisible(false);
 }
 void ThiefBot::cleanUp()
+{
+    getWorld()->increaseScore(10);
+    deleteGoodie();
+}
+void ThiefBot::deleteGoodie()
 {
     if (goodie_ != nullptr){
         goodie_->moveTo(getX(), getY());
@@ -218,7 +228,7 @@ void ThiefBot::cleanUp()
 }
 ThiefBot::~ThiefBot()
 {
-    if (goodie_ != nullptr) delete goodie_;
+    if (goodie_ != nullptr) {delete goodie_;};
 }
 void MeanThiefBot::doSomething()
 {
@@ -226,6 +236,12 @@ void MeanThiefBot::doSomething()
         Avatar *avatar = getWorld()->getAvatar();
         if (!getWorld()->firePeaBot(getX(), getY(),getDirection(), avatar->getX(), avatar->getY(), this)) stealOrMove();
     }
+}
+
+void MeanThiefBot::cleanUp()
+{
+    getWorld()->increaseScore(20);
+    deleteGoodie();
 }
 bool Living::damage(int x, int y)
 {

@@ -6,6 +6,7 @@
 #include <string>
 #include <sstream>    // header file for stringstream
 #include <iomanip>  // defines the manipulator setw
+using namespace std;
 //sDir: +1 for pos dir, -1 for neg dir
 //targetX, Y is coord of player
 bool StudentWorld::isPlayerInSight(int startX, int startY, Avatar *avatar_, int sDir, int targetX, int targetY, char dirSwitch, Actor* Bot)
@@ -19,7 +20,6 @@ bool StudentWorld::isPlayerInSight(int startX, int startY, Avatar *avatar_, int 
             constDir = startY; //need to be in same col
             shooter = startX; //target var of shooter
             target = targetX;
-            cerr << constDir;
             break;
         case 'y':
             if (startX != targetX) return false; //need to be on same col to be in sight
@@ -104,13 +104,33 @@ int StudentWorld::loadLevel()
                     break;    
                 case Level::thiefbot_factory:
                     actors_.push_back(new Factory(i,j,this, 't'));
-                    break;                
-
+                    break;    
+                case Level::marble:
+                    actors_.push_back(new Marble(i,j,this));
+                    break;    
+                case Level::pit:
+                    actors_.push_back(new Pit(i,j,this));
+                    break;             
             }
         }
     }
     return GWSTATUS_CONTINUE_GAME; //default exit
 }
+//check if marble can be moved to new dir (one past where it is)
+bool StudentWorld::moveMarble(Actor* marble, int newX, int newY)
+{
+    vector<Actor*>::iterator it = actors_.begin();
+    while (it != actors_.end()) {
+        //looking for whatever is on next square one over
+        if ((*it)->onSameSquare(newX, newY)) {
+            if((*it)->isAffectedByPea() && !(*it)->canMarble()) return false;
+
+        };
+        it++;
+    }
+    return true;
+}
+
 int StudentWorld::init()
 {
     bonusPts_ = crystalCt_ = 0;
@@ -165,13 +185,31 @@ string StudentWorld::formatString()
 }
 int StudentWorld::move()
 {
-    // This code is here merely to allow the game to build, run, and terminate after you type q
+    // This code is here merely to allow the game to build, run and terminate after you type q
     vector<Actor*>::iterator it = actors_.begin();
     while (it != actors_.end()) {
         (*it)->doSomething();
         it++;
     }
     avatar_->doSomething();
+    //add new items from tmp to actor_ vector
+    vector<Actor*>::iterator tmp_it = tmp_.begin();
+    while (tmp_it != tmp_.end()) {
+        actors_.push_back(*tmp_it);
+        tmp_it++;
+    }
+    tmp_.clear();
+
+    //delete item from delete_ vector
+    map<Actor*, bool>::iterator erase_it = delete_.begin();
+    while (erase_it != delete_.end()) {
+        actors_.erase(find(actors_.begin(), actors_.end(), erase_it->first));
+        if (erase_it->second) delete erase_it->first;
+
+        erase_it++;
+    }    
+    delete_.clear();
+
     if (!(avatar_->isAlive())) {decLives();return GWSTATUS_PLAYER_DIED;}; //Player Died
     // //cleanup: remove dead actors
     it = actors_.begin();
@@ -185,6 +223,7 @@ int StudentWorld::move()
     if (bonusPts_ > 0) bonusPts_--;
     if (levelFinish_) {
         increaseScore(bonusPts_);
+        playSound(SOUND_FINISHED_LEVEL);
         return GWSTATUS_FINISHED_LEVEL;
     }
     setGameStatText(formatString());
@@ -195,11 +234,15 @@ int StudentWorld::move()
 void StudentWorld::cleanUp()
 {
     vector<Actor*>::iterator it = actors_.begin();
+    int ct = 0;
+
     while (it != actors_.end())
     {
         delete *it; //free any remaining actors
+        ct++;
         it = actors_.erase(it); //delete item from vector
     }
+    actors_.clear();
     if (avatar_ != nullptr) {delete avatar_;avatar_=nullptr;};
 
 }
@@ -212,6 +255,13 @@ bool StudentWorld::moveActor(Actor* actor, int newX, int newY)
         if ((*it)->onSameSquare(newX, newY)){
             if ((*it) == actor) break; //ignore self
             //check if it is alive(cannot move onto non living objects)
+            if (actor == avatar_ && (*it)->canPush()) { //only actor can move marble
+                int x = newX;
+                int y = newY;
+                actor->moveDir(actor->getDirection(), x, y); //new marble dir
+                if (moveMarble((*it), x, y)) {(*it)->moveTo(x, y);return true;};
+                return false;
+            }
             if ((*it)->isAffectedByPea()) return false; //is a wall or factory
         }
         it++;
@@ -230,16 +280,16 @@ void StudentWorld::firePlayer(int startX, int startY, int dir)
     switch(dir)
     {
         case 0: //right
-            actors_.push_back(new Pea(startX+1, startY,this, dir));
+            tmp_.push_back(new Pea(startX+1, startY,this, dir));
             break;
         case 90: //up
-            actors_.push_back(new Pea(startX, startY+1,this, dir));
+            tmp_.push_back(new Pea(startX, startY+1,this, dir));
             break;
         case 180:
-            actors_.push_back(new Pea(startX-1, startY,this, dir));
+            tmp_.push_back(new Pea(startX-1, startY,this, dir));
             break;
         case 270:
-            actors_.push_back(new Pea(startX, startY-1,this, dir));
+            tmp_.push_back(new Pea(startX, startY-1,this, dir));
             break;
     }
 }
@@ -250,25 +300,29 @@ bool StudentWorld::firePeaBot(int startX, int startY, int dir, int targetX, int 
     switch(dir){
         case 0: //right
             if (isPlayerInSight(startX, startY, avatar_, 1, targetX, targetY, 'x', Bot)){
-                actors_.push_back(new Pea(startX+1, startY,this, 0));
+                tmp_.push_back(new Pea(startX+1, startY,this, 0));
+                playSound(SOUND_ENEMY_FIRE);
                 return true;
             }
             break; 
         case 90: //up
             if (isPlayerInSight(startX, startY, avatar_, 1, targetX, targetY, 'y', Bot)){
-                actors_.push_back(new Pea(startX, startY+1,this, 90));
+                tmp_.push_back(new Pea(startX, startY+1,this, 90));
+                playSound(SOUND_ENEMY_FIRE);
                 return true;
             }
             break;
         case 180: //left
             if (isPlayerInSight(startX, startY, avatar_, -1, targetX, targetY, 'x', Bot)){
-                actors_.push_back(new Pea(startX-1, startY,this, 180));
+                tmp_.push_back(new Pea(startX-1, startY,this, 180));
+                playSound(SOUND_ENEMY_FIRE);
                 return true;
             }
             break;
         case 270: //down
             if (isPlayerInSight(startX, startY, avatar_, -1, targetX, targetY, 'y', Bot)){
-                actors_.push_back(new Pea(startX, startY-1,this, 270));
+                tmp_.push_back(new Pea(startX, startY-1,this, 270));
+                playSound(SOUND_ENEMY_FIRE);
                 return true;
             }
             break;
@@ -313,7 +367,7 @@ bool StudentWorld::stealGoodie(Actor *thiefBot, int x, int y){
                 r_val = true; //returns true if on same square as goodie
                 if (rand()%10 == 6){
                     thiefBot->collectGoodie(*it);
-                    actors_.erase(it); //remove from actors array and store address in thiefbot
+                    deleteActor(*it, false); //remove from actors array and store address in thiefbot
                     playSound(SOUND_ROBOT_MUNCH);
                     return true;
                 }
@@ -337,3 +391,15 @@ int StudentWorld::countThiefBots(double startX, double endX, double startY, doub
     return ct;
 }
 
+void StudentWorld::checkPit(int x, int y, Actor *pit)
+{
+    vector<Actor*>::iterator it = actors_.begin();
+    while (it != actors_.end())
+    {
+        if ((*it)->canPush() && (*it)->onSameSquare(x, y)) {
+            deleteActor(*it, true); //delete pit
+            deleteActor(pit, true);
+        }
+        it++;
+    }     
+}

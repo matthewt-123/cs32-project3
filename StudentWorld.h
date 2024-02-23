@@ -30,17 +30,22 @@ public:
   void levelComplete() {levelFinish_=true;};
   Avatar *getAvatar() {return avatar_;};
   bool stealGoodie(Actor *thiefBot, int x, int y);
-  void addActor(Actor *actor) {actors_.push_back(actor);};
+  void addActor(Actor *actor) {tmp_.push_back(actor);};
   int countThiefBots(double startX, double endX, double startY, double endY);
+  void deleteActor(Actor* actor, bool toDelete) {delete_.insert({actor, toDelete});}; //mark element to be removed from actor array (NOT DELETED)
+  bool moveMarble(Actor* marble, int newX, int newY);
+  void checkPit(int x, int y, Actor *pit);
 private:
-  string formatString();
+  string formatString(); //format top text
   bool isPlayerInSight(int startX, int startY, Avatar *avatar_, int sDir, int targetX, int targetY, char dirSwitch, Actor* Bot);
-  int loadLevel();
+  int loadLevel(); //load level and add all actors
   vector<Actor *> actors_; //vector of all actor
   Avatar *avatar_;
   int bonusPts_;
-  int crystalCt_;
-  bool levelFinish_;
+  int crystalCt_; //ct of crystals
+  vector<Actor *> tmp_; //tmp array. cannot add to actors_ array while iterating
+  map<Actor *, bool> delete_; //tmp array, cannot delete while iterating. map address to whether obj should be deleted
+  bool levelFinish_; //whether a level has been finished
 };
 
 #endif // STUDENTWORLD_H_
