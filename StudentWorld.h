@@ -3,7 +3,6 @@
 
 #include "GameWorld.h"
 #include "Actor.h"
-
 #include "Level.h"
 #include <string>
 #include <vector>
@@ -16,12 +15,15 @@ class Avatar;
 class StudentWorld : public GameWorld
 {
 public:
+  //needed functions
   StudentWorld(std::string assetPath);
   ~StudentWorld();
   virtual int init();
   virtual int move();
   virtual void cleanUp();
-  bool moveActor(Actor* actor, int newX, int newY);
+
+
+  bool moveActor(Actor* actor, int newX, int newY); //check if actor can be moved to new square
   bool peaDamage(int startX, int startY, Actor* pea); //true if damaged false if pea died
   bool firePeaBot(int startX, int startY, int dir, int targetX, int targetY, Actor* Bot); //return true if able to fire, false if not
   void firePlayer(int startX, int startY, int dir);

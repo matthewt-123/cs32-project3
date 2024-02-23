@@ -1,10 +1,5 @@
 #ifndef ACTOR_H_
 #define ACTOR_H_
-#define TEST
-#ifdef TEST
-#include <iostream>
-using namespace std;
-#endif
 #include "GraphObject.h"
 
 class StudentWorld;
@@ -27,13 +22,11 @@ class Actor : public GraphObject
         virtual ~Actor() {return;}; //deleting actor should not delete student world
         virtual void doSomething() = 0;
         virtual bool damage(int x, int y) {return (getX() == x && getY() == y) ? true : false;}; //default: pea dies when hitting obj
-        virtual bool canDie() {return false;}; //default actors cannot die(walls, factories)
         virtual bool canCollect() {return false;}; //cannot collect default actors (for thief bot use)
         bool isAlive() {return alive_;}; //getter function
         virtual bool isAffectedByPea() {return true;}; //if peas can hit objects
         virtual void cleanUp() {}; //clean up before death
         bool onSameSquare(int x, int y){return (getX() == x && getY() == y) ? true : false;}; //if cur obj is on same square as another
-        bool inRange(int startX, int endX, int startY, int endY) {return (getX() >= startX && getX() <= endX && getY() >= startY && getY() <= endY)?true:false;}; //if obj is in an [a,b]x[c,d] square
         void compareDist(int constDir, int target, int &closestObj, char dir, int sDir); //compare distances between closest obj and target and self and target
         StudentWorld *getWorld() {return world_;}; //getter func for world
         virtual void collectGoodie(Actor *goodie) {}; //thief bot collecting goodie
@@ -63,7 +56,7 @@ class Wall : public Actor
     public:
         Wall(double startX, double startY, StudentWorld *world)
             :Actor(world, IID_WALL, startX, startY){};
-        virtual void doSomething() {return;}; //do nothing
+        virtual void doSomething() {}; //do nothing
 };
 
 //ACTOR DERIVED ABC: Living Objects(can die during gameplay)
@@ -72,10 +65,9 @@ class Living : public Actor
     public:
         Living(double startX, double startY, int imageID, StudentWorld *world,int hp,int deathSound_, int impactSound_,int dir=none)
             :Actor(world, imageID, startX, startY,dir){hitpoints_=hp;};
-        virtual bool canDie() {return true;}; //can die
         virtual void doSomething() = 0; //is an ABC, cannot be directly created
         int getHitpoints() {return hitpoints_;}; //getter func for hp
-        bool updateHitpoints(int hp); //if returns false, stop dosomething
+        bool updateHitpoints(int hp); //if returns false, die
         bool damage(int x, int y); //when pea hits obj
         void restoreHealth() {hitpoints_=20;}; //setter func for hp
     private:
@@ -88,7 +80,7 @@ class NotAlive : public Actor
 {
     public: 
         NotAlive(double startX, double startY, int imageID, StudentWorld *world,int dir=none)
-        :Actor(world, imageID, startX, startY,dir){};
+            :Actor(world, imageID, startX, startY,dir){};
         virtual void doSomething() = 0; //ABC
         virtual bool isAffectedByPea() {return false;};
         virtual bool damage(int x, int y) {return false;}; //non-living objects cannot be damaged
@@ -112,7 +104,6 @@ class Pea : public NotAlive
     public:
         Pea(double startX, double startY, StudentWorld *world, int dir);
         virtual void doSomething();
-
     private:
         int dir_;
 };
@@ -149,7 +140,7 @@ class Marble : public Living
 {
     public:
         Marble(double startX, double startY, StudentWorld *world)
-            :Living(startX, startY, IID_MARBLE, world, 20, SOUND_NONE, SOUND_NONE) {};
+            :Living(startX, startY, IID_MARBLE, world, 10, SOUND_NONE, SOUND_NONE) {};
         virtual void doSomething() {}; //does nothing each tick
         virtual bool canPush() {return true;};
 };

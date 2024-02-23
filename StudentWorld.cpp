@@ -1,12 +1,12 @@
 #include "StudentWorld.h"
 #include "GameConstants.h"
-#include "Actor.h"
 #include <algorithm>
 #include <vector>
 #include <string>
 #include <sstream>    // header file for stringstream
 #include <iomanip>  // defines the manipulator setw
 using namespace std;
+
 //sDir: +1 for pos dir, -1 for neg dir
 //targetX, Y is coord of player
 bool StudentWorld::isPlayerInSight(int startX, int startY, Avatar *avatar_, int sDir, int targetX, int targetY, char dirSwitch, Actor* Bot)
@@ -342,7 +342,7 @@ bool StudentWorld::peaDamage(int startX, int startY, Actor *pea)
     while (it != actors_.end())
     {
         //damage if possible
-        if ((*it)->isAffectedByPea()) {
+        if ((*it)->isAffectedByPea() && !(*it)->canMarble()) {
             if ((*it)->damage(startX, startY)) pea->die();
         }
         it++;
@@ -383,7 +383,7 @@ int StudentWorld::countThiefBots(double startX, double endX, double startY, doub
     int ct = 0;
     while (it != actors_.end())
     {
-        if ((*it)->isThiefBot() && (*it)->inRange(startX, endX, startY, endY)) {
+        if ((*it)->isThiefBot() && (*it)->getX() >= startX && (*it)->getX() <= endX && (*it)->getY() >= startX && (*it)->getY() <= endY) {
             ct++;
         }
         it++;

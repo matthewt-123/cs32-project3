@@ -3,6 +3,10 @@
 #include <iostream>
 using namespace std;
 // Students:  Add code to this file, Actor.h, StudentWorld.h, and StudentWorld.cpp
+/*****************************
+Actor Functions 
+*****************************/
+//move orig coordinates to next one in given direction
 void Actor::moveDir(int dir, int &x, int &y){
     switch(dir){
         case 0:
@@ -23,7 +27,6 @@ void Actor::moveDir(int dir, int &x, int &y){
 }
 //usage: a is an actor input, constDir is the variable held const(row/col)
 //target is the target val, closestObj is the closest obj to 
-//
 void Actor::compareDist(int constDir, int shooter, int &closestObj, char dir, int sDir){
     //1: ignore non in line actors
     int cVar = 0; //variable coordinate(actual)
@@ -42,7 +45,7 @@ void Actor::compareDist(int constDir, int shooter, int &closestObj, char dir, in
 
 
 /**************
-Actor::Living ABC
+Actor Derived
 ***************/
 //update hp: return true if still alive, false if not
 bool Living::updateHitpoints(int hp)
@@ -54,6 +57,38 @@ bool Living::updateHitpoints(int hp)
         die();
         getWorld()->playSound(deathSound_);
         return false;
+    }
+}
+
+void Pit::doSomething()
+{
+    getWorld()->checkPit(getX(), getY(), this);
+}
+
+bool Living::damage(int x, int y)
+{
+    if (x != getX() || y != getY()) return false; //cannot damage obj not on square
+    if(updateHitpoints(-2)){
+        getWorld()->playSound(impactSound_);
+    }
+    return true;
+}
+
+void Factory::doSomething()
+{
+    if (getWorld()->countThiefBots(getX()-3, getX() + 3, getY() -3, getY()+3) < 3)
+    {
+        if (rand()%50 == 6){
+            if (botType_ == 'm'){
+                Actor* newMeanThief = new MeanThiefBot(getX(), getY(), getWorld());
+                getWorld()->addActor(newMeanThief);
+            } else if (botType_ == 't') {
+                Actor* newThief = new ThiefBot(getX(), getY(), getWorld());
+                getWorld()->addActor(newThief);
+            }
+            getWorld()->playSound(SOUND_ROBOT_BORN);
+        }
+
     }
 }
 /****************
@@ -73,7 +108,7 @@ void Avatar::doSomething()
         switch (ch){
             case KEY_PRESS_LEFT:
                 setDirection(left);
-                if (getWorld()->moveActor(this, getX()-1,getY())) moveTo(getX()-1, getY());;
+                if (getWorld()->moveActor(this, getX()-1,getY())) moveTo(getX()-1, getY());
                 break;
             case KEY_PRESS_RIGHT:
                 setDirection(right);
@@ -119,10 +154,7 @@ void Pea::doSomething()
     moveTo(x,y);
     getWorld()->peaDamage(getX(),getY(), this);
 }
-void Pit::doSomething()
-{
-    getWorld()->checkPit(getX(), getY(), this);
-}
+
 
 Bot::Bot(double startX, double startY, int imageID, int hp, StudentWorld *world, int deathSound_, int impactSound_,int dir)
 :Living(startX, startY, imageID, world, hp, SOUND_ROBOT_IMPACT, SOUND_ROBOT_DIE, dir)
@@ -243,18 +275,6 @@ void MeanThiefBot::cleanUp()
     getWorld()->increaseScore(20);
     deleteGoodie();
 }
-bool Living::damage(int x, int y)
-{
-    if (x != getX() || y != getY()) return false; //cannot damage obj not on square
-    updateHitpoints(-2);
-    if(getHitpoints() <= 0) {
-        die();
-        getWorld()->playSound(deathSound_);
-    }
-    getWorld()->playSound(impactSound_);
-    cerr << "ouch";
-    return true;
-}
 /*************
 Actor::NotAlive::Goodie is an ABC
 **************/
@@ -290,23 +310,7 @@ void Exit::doSomething()
         getWorld()->levelComplete();
     }
 }
-void Factory::doSomething()
-{
-    if (getWorld()->countThiefBots(getX()-3, getX() + 3, getY() -3, getY()+3) < 3)
-    {
-        if (rand()%50 == 6){
-            if (botType_ == 'm'){
-                Actor* newMeanThief = new MeanThiefBot(getX(), getY(), getWorld());
-                getWorld()->addActor(newMeanThief);
-            } else if (botType_ == 't') {
-                Actor* newThief = new ThiefBot(getX(), getY(), getWorld());
-                getWorld()->addActor(newThief);
-            }
-            getWorld()->playSound(SOUND_ROBOT_BORN);
-        }
 
-    }
-}
 void HealthGoodie::pickUpGoodie() {getWorld()->getAvatar()->restoreHealth();}; //restore health
 void AmmoGoodie::pickUpGoodie(){getWorld()->getAvatar()->addAmmo(20);}; //add ammo
 void Crystal::pickUpGoodie() {getWorld()->collectCrystal();}; //decrement crystal ct
